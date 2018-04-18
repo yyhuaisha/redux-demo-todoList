@@ -1,10 +1,43 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
 import store from './configState.js';
 
 let id = 3;
 
-export default class Todos extends Component {
-  clickHandler = () => {
+
+const getTodos = (todos, filterTag) => {
+  switch (filterTag) {
+    case 'done':
+      return todos.filter(
+        item => item.vis
+      );
+    case 'notdone':
+      return todos.filter(
+        item => !item.vis
+      );
+    default:
+      return todos;
+  }
+}
+
+
+const changeHandler = (event) => {
+  store.dispatch({
+    type: 'VISIBILITY',
+    id: Number(event.target.id),
+    vis: !event.target.checked
+  })
+}
+const clickFilter = (tag) => {
+  store.dispatch({
+    type: 'FILTER_TODO',
+    tag: tag
+  })
+}
+
+class Todos extends Component {
+  clickHandler = (event) => {
+    event.preventDefault();
     store.dispatch({
       type: 'ADD_TODO',
       text: this.input.value,
@@ -13,44 +46,18 @@ export default class Todos extends Component {
     })
     this.input.value = '';
   }
-  changeHandler = (event) => {
-    store.dispatch({
-      type: 'VISIBILITY',
-      id: Number(event.target.id),
-      vis: !this.input.checked
-    })
-  }
-  clickFilter = (tag) => {
-    store.dispatch({
-      type: 'FILTER_TODO',
-      tag: tag
-    })
-  }
+  // componentWillMount = () => {
+  //   store.subscribe(() => {
+  //     this.forceUpdate();
+  //   })
+  // }
 
-
-  componentWillMount = () => {
-    store.subscribe(() => {
-      this.forceUpdate();
-    })
-  }
   render() {
     let input;
-    const olgTodos = store.getState().todos;
-    const todos = (() => {
-      switch (store.getState().filterTag) {
-        case 'done':
-          return olgTodos.filter(
-            item => item.vis
-          );
-        case 'notdone':
-          return olgTodos.filter(
-            item => !item.vis
-          );
-        default:
-          return olgTodos;
-      }
-    })()
-    console.log("todos: ", todos);
+    const { todos,filterTag } = this.props;
+
+
+    console.log("todos: ", todos, "filterTag: ",filterTag);
     return (
       <div>
         <div>
@@ -67,19 +74,19 @@ export default class Todos extends Component {
                                        type="checkbox"
                                        id={ todo.id }
                                        defaultChecked={ todo.vis }
-                                       onChange={ this.changeHandler } />
+                                       onChange={ changeHandler } />
                                 { todo.text }
                               </li>
             ) }
         </ul>
         <div>
-          <button onClick={ () => this.clickFilter('all') }>
+          <button onClick={ () => clickFilter('all') } disabled={filterTag === 'all'}>
             all
           </button>
-          <button onClick={ () => this.clickFilter('done') }>
+          <button onClick={ () => clickFilter('done') } disabled={filterTag === 'done'}>
             done
           </button>
-          <button onClick={ () => this.clickFilter('notdone') }>
+          <button onClick={ () => clickFilter('notdone') } disabled={filterTag === 'notdone'}>
             not done
           </button>
         </div>
@@ -87,3 +94,14 @@ export default class Todos extends Component {
     )
   }
 }
+
+
+const mapStateToProps = state => {
+  return {
+    todos: getTodos(state.todos, state.filterTag),
+    filterTag: state.filterTag,
+    // todos: getVisibleTodos(state.todos, state.visibilityFilter)
+  }
+}
+
+export default connect(mapStateToProps)(Todos);
